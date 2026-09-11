@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
+	"github.com/traP-jp/neoshowcase-cli/internal/runner"
 )
 
 var version = "dev"
@@ -14,5 +14,5 @@ var version = "dev"
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	os.Exit(cli.Execute(ctx, os.Args[1:], os.Stdout, os.Stderr, version))
+	os.Exit(runner.Execute(ctx, os.Args[1:], os.Stdout, os.Stderr, version))
 }

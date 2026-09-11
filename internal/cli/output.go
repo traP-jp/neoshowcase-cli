@@ -114,3 +114,138 @@ func writeLog(out io.Writer, format string, entry logView, streaming bool) error
 	}
 	return nil
 }
+
+func (rt *runtime) Applications(apps []*api.Application) error {
+	views := make([]applicationView, 0, len(apps))
+	var text strings.Builder
+	fmt.Fprintln(&text, "ID\tNAME\tCOMMIT\tSTATE")
+	for _, app := range apps {
+		views = append(views, viewApplication(app))
+		fmt.Fprintf(&text, "%s\t%s\t%s\t%s\n", app.GetId(), app.GetName(), app.GetCommit(), app.GetContainer())
+	}
+	if rt.output == "jsonl" {
+		for _, view := range views {
+			if err := writeJSONLine(rt.out, view); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return writeValue(rt.out, rt.output, views, strings.TrimSuffix(text.String(), "\n"))
+}
+
+func (rt *runtime) Application(app *api.Application) error {
+	view := viewApplication(app)
+	text := fmt.Sprintf("ID: %s\nName: %s\nCommit: %s\nRunning: %t\nContainer state: %s\nLatest build: %s", view.ID, view.Name, view.Commit, view.Running, view.ContainerState, view.LatestBuildStatus)
+	return writeValue(rt.out, rt.output, view, text)
+}
+
+func (rt *runtime) ApplicationLogs(applicationID string, outputs []*api.ApplicationOutput, streaming bool) error {
+	entries := make([]logView, 0, len(outputs))
+	for _, output := range outputs {
+		entry := logView{ApplicationID: applicationID, Time: utc(output.GetTime()), Log: output.GetLog()}
+		entries = append(entries, entry)
+		if streaming {
+			if err := writeLog(rt.out, rt.output, entry, true); err != nil {
+				return err
+			}
+		}
+	}
+	if streaming {
+		return nil
+	}
+	if rt.output == "text" {
+		for _, entry := range entries {
+			if err := writeLog(rt.out, rt.output, entry, false); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if rt.output == "jsonl" {
+		for _, entry := range entries {
+			if err := writeJSONLine(rt.out, entry); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return writeValue(rt.out, rt.output, entries, "")
+}
+
+func (rt *runtime) Builds(builds []*api.Build, names map[string]string) error {
+	views := make([]buildView, 0, len(builds))
+	var text strings.Builder
+	fmt.Fprintln(&text, "ID\tAPPLICATION\tCOMMIT\tSTATUS")
+	for _, build := range builds {
+		applicationName := names[build.GetApplicationId()]
+		views = append(views, viewBuild(build, applicationName))
+		if applicationName == "" {
+			applicationName = build.GetApplicationId()
+		}
+		fmt.Fprintf(&text, "%s\t%s\t%s\t%s\n", build.GetId(), applicationName, build.GetCommit(), build.GetStatus())
+	}
+	if rt.output == "jsonl" {
+		for _, view := range views {
+			if err := writeJSONLine(rt.out, view); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return writeValue(rt.out, rt.output, views, strings.TrimSuffix(text.String(), "\n"))
+}
+
+func (rt *runtime) BuildDetails(build *api.Build) error {
+	view := viewBuild(build, "")
+	text := fmt.Sprintf("ID: %s\nApplication ID: %s\nCommit: %s\nStatus: %s\nRetriable: %t", view.ID, view.ApplicationID, view.Commit, view.Status, view.Retriable)
+	return writeValue(rt.out, rt.output, view, text)
+}
+
+func (rt *runtime) BuildResult(build *api.Build, applicationName string, streaming bool) error {
+	view := viewBuild(build, applicationName)
+	if streaming && rt.output == "text" {
+		_, err := fmt.Fprintf(rt.errOut, "build %s: %s\n", build.GetId(), build.GetStatus())
+		return err
+	}
+	if streaming {
+		return writeJSONLine(rt.out, view)
+	}
+	return writeValue(rt.out, rt.output, view, fmt.Sprintf("build %s: %s", build.GetId(), build.GetStatus()))
+}
+
+func (rt *runtime) BuildLog(buildID string, data []byte, streaming bool) error {
+	if rt.output == "text" {
+		_, err := rt.out.Write(data)
+		return err
+	}
+	entry := logView{BuildID: buildID, Log: string(data)}
+	if !streaming && rt.output != "jsonl" {
+		return writeValue(rt.out, rt.output, entry, "")
+	}
+	return writeLog(rt.out, rt.output, entry, streaming)
+}
+
+func (rt *runtime) Mutation(result MutationResult) error {
+	var value map[string]any
+	var text string
+	switch result.Operation {
+	case "app.rebuild":
+		value = map[string]any{"operation": result.Operation, "application_id": result.ApplicationID, "application_name": result.ApplicationName, "commit": result.Commit, "state": result.State}
+		text = fmt.Sprintf("rebuild requested: %s (%s) commit %s", result.ApplicationName, result.ApplicationID, result.Commit)
+	case "build.retry":
+		value = map[string]any{"operation": result.Operation, "source_build_id": result.SourceBuildID, "application_id": result.ApplicationID, "commit": result.Commit, "state": result.State}
+		text = fmt.Sprintf("retry requested: build %s commit %s", result.SourceBuildID, result.Commit)
+	case "build.cancel":
+		value = map[string]any{"operation": result.Operation, "build_id": result.BuildID, "application_id": result.ApplicationID, "commit": result.Commit, "status": result.Status, "state": result.State}
+		if result.State == "already terminal; no change" {
+			text = fmt.Sprintf("build %s is already %s; no change", result.BuildID, result.Status)
+		} else {
+			text = fmt.Sprintf("cancel requested: build %s (%s)", result.BuildID, result.Status)
+		}
+	default:
+		value = map[string]any{"operation": result.Operation, "application_id": result.ApplicationID, "application_name": result.ApplicationName, "commit": result.Commit, "state": result.State}
+		text = fmt.Sprintf("%s: %s (%s): %s", result.Operation, result.ApplicationName, result.ApplicationID, result.State)
+	}
+	return writeValue(rt.out, rt.output, value, text)
+}

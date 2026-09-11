@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -26,13 +27,29 @@ func fail(code int, format string, args ...any) error {
 	return &exitError{code: code, err: fmt.Errorf(format, args...)}
 }
 
-func exitCode(err error) int {
+func Fail(code int, format string, args ...any) error {
+	return fail(code, format, args...)
+}
+
+func ExitCode(err error) int {
 	if err == nil {
 		return ExitOK
+	}
+	if isCobraUsageError(err) {
+		return ExitUsage
 	}
 	var target *exitError
 	if errors.As(err, &target) {
 		return target.code
 	}
 	return ExitFailure
+}
+
+func isCobraUsageError(err error) bool {
+	message := err.Error()
+	return strings.HasPrefix(message, "unknown command ") ||
+		strings.HasPrefix(message, "unknown flag: ") ||
+		strings.HasPrefix(message, "requires ") ||
+		strings.HasPrefix(message, "accepts ") ||
+		strings.Contains(message, "required flag(s)")
 }

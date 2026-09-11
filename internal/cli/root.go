@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"context"
-	"errors"
 	"io"
 	"os"
 	"strings"
@@ -14,16 +12,8 @@ import (
 
 const (
 	defaultTimeout         = 10 * time.Minute
-	pollInterval           = 11 * time.Second
 	defaultHistoricalLines = int32(5000)
 )
-
-type resolvedConfig struct {
-	endpoint   string
-	user       string
-	authHeader string
-	insecure   bool
-}
 
 type runtime struct {
 	out, errOut io.Writer
@@ -33,42 +23,30 @@ type runtime struct {
 	output, logLevel                       string
 	noColor, insecure, allowMutable        bool
 	logger                                 *logrus.Logger
-
-	clientFactory func(resolvedConfig) (apiClient, error)
+	executor                               Executor
 }
 
-func Execute(ctx context.Context, args []string, out, errOut io.Writer, version string) int {
-	rt := &runtime{out: out, errOut: errOut, version: version, clientFactory: newAPIClient, logger: newLogger(errOut)}
-	root := rt.rootCommand()
-	root.SetArgs(args)
-	root.SetOut(out)
-	root.SetErr(errOut)
-	err := root.ExecuteContext(ctx)
-	if err == nil {
-		return ExitOK
-	}
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		logCommandError(rt.logger, errors.New("command timed out"))
-		return ExitTimeout
-	}
-	if errors.Is(ctx.Err(), context.Canceled) {
-		logCommandError(rt.logger, errors.New("command interrupted"))
-		return ExitInterrupt
-	}
-	logCommandError(rt.logger, err)
-	if isCobraUsageError(err) {
-		return ExitUsage
-	}
-	return exitCode(err)
+type CLI struct {
+	command *cobra.Command
+	logger  *logrus.Logger
 }
 
-func isCobraUsageError(err error) bool {
-	message := err.Error()
-	return strings.HasPrefix(message, "unknown command ") ||
-		strings.HasPrefix(message, "unknown flag: ") ||
-		strings.HasPrefix(message, "requires ") ||
-		strings.HasPrefix(message, "accepts ") ||
-		strings.Contains(message, "required flag(s)")
+func New(out, errOut io.Writer, version string, executorFactory ExecutorFactory) *CLI {
+	logger := newLogger(errOut)
+	rt := &runtime{out: out, errOut: errOut, version: version, logger: logger}
+	rt.executor = executorFactory(rt)
+	command := rt.rootCommand()
+	command.SetOut(out)
+	command.SetErr(errOut)
+	return &CLI{command: command, logger: logger}
+}
+
+func (c *CLI) Command() *cobra.Command {
+	return c.command
+}
+
+func (c *CLI) LogError(err error) {
+	logCommandError(c.logger, err)
 }
 
 func (rt *runtime) rootCommand() *cobra.Command {
@@ -124,10 +102,10 @@ or configuration file.`,
 	return root
 }
 
-func (rt *runtime) client(cmd *cobra.Command) (apiClient, error) {
+func (rt *runtime) connectionOptions(cmd *cobra.Command) (ConnectionOptions, error) {
 	fileConfig, err := loadConfig(rt.configPath, cmd.Flags().Changed("config"))
 	if err != nil {
-		return nil, fail(ExitUsage, "%v", err)
+		return ConnectionOptions{}, fail(ExitUsage, "%v", err)
 	}
 	value := func(flagName, flagValue, envValue, fileValue, fallback string) string {
 		if cmd.Flags().Changed(flagName) {
@@ -135,20 +113,19 @@ func (rt *runtime) client(cmd *cobra.Command) (apiClient, error) {
 		}
 		return firstNonEmpty(envValue, fileValue, fallback)
 	}
-	cfg := resolvedConfig{
-		endpoint:   value("endpoint", rt.endpoint, os.Getenv("NEOSHOWCASE_ENDPOINT"), fileConfig.Endpoint, ""),
-		user:       value("user", rt.user, os.Getenv("NEOSHOWCASE_USER"), fileConfig.User, ""),
-		authHeader: value("auth-header", rt.authHeader, os.Getenv("NEOSHOWCASE_AUTH_HEADER"), fileConfig.AuthHeader, defaultAuthHeader),
-		insecure:   rt.insecure,
+	options := ConnectionOptions{
+		Endpoint:   value("endpoint", rt.endpoint, os.Getenv("NEOSHOWCASE_ENDPOINT"), fileConfig.Endpoint, ""),
+		User:       value("user", rt.user, os.Getenv("NEOSHOWCASE_USER"), fileConfig.User, ""),
+		AuthHeader: value("auth-header", rt.authHeader, os.Getenv("NEOSHOWCASE_AUTH_HEADER"), fileConfig.AuthHeader, defaultAuthHeader),
+		Insecure:   rt.insecure,
 	}
-	if cfg.endpoint == "" {
-		return nil, fail(ExitUsage, "NeoShowcase endpoint is required (--endpoint or NEOSHOWCASE_ENDPOINT)")
+	if options.Endpoint == "" {
+		return ConnectionOptions{}, fail(ExitUsage, "NeoShowcase endpoint is required (--endpoint or NEOSHOWCASE_ENDPOINT)")
 	}
-	if cfg.insecure {
+	if options.Insecure {
 		rt.logger.Warn("TLS certificate verification is disabled")
 	}
-	rt.logger.Debug("configured NeoShowcase API client")
-	return rt.clientFactory(cfg)
+	return options, nil
 }
 
 func (rt *runtime) versionCommand() *cobra.Command {

@@ -1,4 +1,4 @@
-package cli
+package executor
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/api/genconnect"
+	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 )
 
 type apiClient interface {
@@ -63,24 +64,24 @@ func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) 
 	return t.base.RoundTrip(clone)
 }
 
-func newAPIClient(cfg resolvedConfig) (apiClient, error) {
-	parsed, err := url.Parse(cfg.endpoint)
+func newAPIClient(options cli.ConnectionOptions) (apiClient, error) {
+	parsed, err := url.Parse(options.Endpoint)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return nil, fail(ExitUsage, "endpoint must be an http(s) URL without user info, a query, or a fragment")
+		return nil, cli.Fail(cli.ExitUsage, "endpoint must be an http(s) URL without user info, a query, or a fragment")
 	}
-	if strings.TrimSpace(cfg.user) == "" {
-		return nil, fail(ExitUsage, "NeoShowcase user is required (--user or NEOSHOWCASE_USER)")
+	if strings.TrimSpace(options.User) == "" {
+		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user is required (--user or NEOSHOWCASE_USER)")
 	}
-	if strings.ContainsAny(cfg.user, "\r\n") {
-		return nil, fail(ExitUsage, "NeoShowcase user contains invalid characters")
+	if strings.ContainsAny(options.User, "\r\n") {
+		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user contains invalid characters")
 	}
-	header := textproto.CanonicalMIMEHeaderKey(cfg.authHeader)
+	header := textproto.CanonicalMIMEHeaderKey(options.AuthHeader)
 	if !validHeaderName(header) {
-		return nil, fail(ExitUsage, "invalid authentication header name")
+		return nil, cli.Fail(cli.ExitUsage, "invalid authentication header name")
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: cfg.insecure} //nolint:gosec // gated by an explicit dangerous flag
-	client := &http.Client{Transport: authTransport{base: transport, header: header, user: cfg.user}}
+	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: options.Insecure} //nolint:gosec // gated by an explicit dangerous flag
+	client := &http.Client{Transport: authTransport{base: transport, header: header, user: options.User}}
 	return &connectAPIClient{APIServiceClient: genconnect.NewAPIServiceClient(client, strings.TrimRight(parsed.String(), "/"))}, nil
 }
 
@@ -105,7 +106,7 @@ func validHeaderName(name string) bool {
 
 func rpcError(action string, err error) error {
 	if connect.CodeOf(err) == connect.CodeNotFound {
-		return fail(ExitNotFound, "%s: target not found", action)
+		return cli.Fail(cli.ExitNotFound, "%s: target not found", action)
 	}
 	return fmt.Errorf("%s: %w", action, err)
 }
