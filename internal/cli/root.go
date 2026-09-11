@@ -73,8 +73,18 @@ func isCobraUsageError(err error) bool {
 
 func (rt *runtime) rootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "neoshowcase-cli",
-		Short:         "Third-party operational CLI for NeoShowcase",
+		Use:   "neoshowcase-cli",
+		Short: "Third-party operational CLI for NeoShowcase",
+		Long: `Third-party operational CLI for NeoShowcase.
+
+Information and monitoring commands support text, JSON, and JSON Lines output.
+Streaming commands emit one independently parseable JSON record per line in
+either machine-readable mode. Command results are written to stdout and
+diagnostics to stderr. Times are emitted as RFC 3339 UTC values.
+
+Every state-changing command requires --allow-mutable-operation on that
+invocation. This permission cannot be enabled through an environment variable
+or configuration file.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {

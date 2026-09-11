@@ -14,7 +14,18 @@ import (
 )
 
 func (rt *runtime) buildCommand() *cobra.Command {
-	cmd := &cobra.Command{Use: "build", Short: "Inspect and operate builds"}
+	cmd := &cobra.Command{
+		Use:   "build",
+		Short: "Inspect and operate builds",
+		Long: `Inspect, monitor, and operate NeoShowcase builds.
+
+Waiting and streaming operations default to a whole-command timeout of 10
+minutes. Build detection and state polling run immediately, then every 11
+seconds. On rebuild and retry, --logs implies --wait.
+
+A monitored build exits successfully only when its terminal status is
+SUCCEEDED. FAILED, CANCELLED, and SKIPPED builds return a non-zero status.`,
+	}
 	cmd.AddCommand(rt.buildListCommand(), rt.buildGetCommand(), rt.buildLogsCommand(), rt.buildWaitCommand(), rt.buildWatchCommand(), rt.buildRetryCommand(), rt.buildCancelCommand())
 	return cmd
 }

@@ -15,7 +15,17 @@ import (
 )
 
 func (rt *runtime) appCommand() *cobra.Command {
-	cmd := &cobra.Command{Use: "app", Short: "Inspect and operate applications"}
+	cmd := &cobra.Command{
+		Use:   "app",
+		Short: "Inspect and operate applications",
+		Long: `Inspect and operate NeoShowcase applications.
+
+An <application> argument accepts either an application ID or a unique exact
+application name. A missing or ambiguous name fails without making changes.
+
+Restart performs a non-atomic state check followed by StartApplication, so a
+concurrent server-side state change can race the check.`,
+	}
 	cmd.AddCommand(
 		rt.appListCommand(), rt.appGetCommand(), rt.appLogsCommand(),
 		rt.appStartCommand(), rt.appStopCommand(), rt.appRestartCommand(), rt.appRebuildCommand(),
