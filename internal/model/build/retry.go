@@ -15,4 +15,7 @@ type RetryRequested struct {
 	Build Build
 }
 
-func (RetryRequested) IsEvent() {}
+type RetryResult struct {
+	Requested  *RetryRequested
+	Completion *CompletionResult
+}

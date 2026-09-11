@@ -1,6 +1,10 @@
 package app
 
-import "time"
+import (
+	"time"
+
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
+)
 
 type RebuildCommand struct {
 	Application string
@@ -17,4 +21,7 @@ type RebuildRequested struct {
 	Commit      string
 }
 
-func (RebuildRequested) IsEvent() {}
+type RebuildResult struct {
+	Requested  *RebuildRequested
+	Completion *buildmodel.CompletionResult
+}

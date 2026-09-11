@@ -5,7 +5,8 @@ import "fmt"
 type ErrorKind int
 
 const (
-	ErrorNotFound ErrorKind = iota + 1
+	ErrorUsage ErrorKind = iota + 1
+	ErrorNotFound
 	ErrorFailure
 	ErrorTimeout
 	ErrorInterrupt

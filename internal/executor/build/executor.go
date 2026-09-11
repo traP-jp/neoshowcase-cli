@@ -1,11 +1,7 @@
 package build
 
-import "github.com/traP-jp/neoshowcase-cli/internal/model"
+type Executor struct{}
 
-type Executor struct {
-	emit model.Emit
-}
-
-func New(emit model.Emit) *Executor {
-	return &Executor{emit: emit}
+func New() *Executor {
+	return &Executor{}
 }

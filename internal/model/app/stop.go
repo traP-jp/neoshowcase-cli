@@ -10,5 +10,3 @@ type StopResult struct {
 	Application Application
 	State       string
 }
-
-func (StopResult) IsEvent() {}

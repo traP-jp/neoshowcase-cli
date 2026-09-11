@@ -22,5 +22,3 @@ type LogsResult struct {
 	Logs      []Log
 	Streaming bool
 }
-
-func (LogsResult) IsEvent() {}

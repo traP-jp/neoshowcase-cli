@@ -8,10 +8,10 @@ import (
 	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
 )
 
-func (e *Executor) Get(ctx context.Context, options model.Connection, identifier string) error {
+func (e *Executor) Get(ctx context.Context, options model.Connection, identifier string) (appmodel.GetResult, error) {
 	application, err := client.ResolveApplication(ctx, client.New(options), identifier)
 	if err != nil {
-		return err
+		return appmodel.GetResult{}, err
 	}
-	return e.emit(appmodel.GetResult{Application: toModel(application)})
+	return appmodel.GetResult{Application: toModel(application)}, nil
 }

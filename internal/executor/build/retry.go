@@ -12,39 +12,41 @@ import (
 	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
-func (e *Executor) Retry(ctx context.Context, options model.Connection, id string, wait, logs bool) error {
+func (e *Executor) Retry(ctx context.Context, options model.Connection, id string, wait, logs bool, emitLog func(buildmodel.LogResult) error) (buildmodel.RetryResult, error) {
 	apiClient := client.New(options)
 	build, err := get(ctx, apiClient, id)
 	if err != nil {
-		return client.ContextError(ctx, err)
+		return buildmodel.RetryResult{}, client.ContextError(ctx, err)
 	}
 	if !build.GetRetriable() {
-		return fmt.Errorf("build %s is not retriable; no build was started", build.GetId())
+		return buildmodel.RetryResult{}, fmt.Errorf("build %s is not retriable; no build was started", build.GetId())
 	}
 	var excluded map[string]struct{}
 	if wait {
 		before, err := apiClient.GetBuilds(ctx, connect.NewRequest(&api.ApplicationIdRequest{Id: build.GetApplicationId()}))
 		if err != nil {
-			return client.ContextError(ctx, client.RPCError("snapshot builds before retry", err))
+			return buildmodel.RetryResult{}, client.ContextError(ctx, client.RPCError("snapshot builds before retry", err))
 		}
 		excluded = IDs(before.Msg.GetBuilds())
 	}
 	if _, err := apiClient.RetryCommitBuild(ctx, connect.NewRequest(&api.RetryCommitBuildRequest{ApplicationId: build.GetApplicationId(), Commit: build.GetCommit()})); err != nil {
-		return client.ContextError(ctx, client.RPCError("retry build", err))
+		return buildmodel.RetryResult{}, client.ContextError(ctx, client.RPCError("retry build", err))
 	}
 	if !wait {
-		return e.emit(buildmodel.RetryRequested{Build: ToModel(build, "")})
+		requested := buildmodel.RetryRequested{Build: ToModel(build, "")}
+		return buildmodel.RetryResult{Requested: &requested}, nil
 	}
 	newBuild, err := Watch(ctx, apiClient, build.GetApplicationId(), build.GetCommit(), excluded)
 	if err != nil {
-		return err
+		return buildmodel.RetryResult{}, err
 	}
-	final, err := e.Monitor(ctx, apiClient, newBuild, logs)
+	final, err := e.Monitor(ctx, apiClient, newBuild, logs, emitLog)
 	if err != nil {
-		return err
+		return buildmodel.RetryResult{}, err
 	}
-	if err := e.emit(buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}); err != nil {
-		return err
+	completion := buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}
+	if err := Result(final); err != nil {
+		return buildmodel.RetryResult{Completion: &completion}, err
 	}
-	return Result(final)
+	return buildmodel.RetryResult{Completion: &completion}, nil
 }

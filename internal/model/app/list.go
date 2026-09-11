@@ -7,5 +7,3 @@ func (ListCommand) IsCommand() {}
 type ListResult struct {
 	Applications []Application
 }
-
-func (ListResult) IsEvent() {}

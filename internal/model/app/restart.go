@@ -10,5 +10,3 @@ type RestartResult struct {
 	Application Application
 	State       string
 }
-
-func (RestartResult) IsEvent() {}

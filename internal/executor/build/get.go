@@ -8,10 +8,10 @@ import (
 	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
-func (e *Executor) Get(ctx context.Context, options model.Connection, id string) error {
+func (e *Executor) Get(ctx context.Context, options model.Connection, id string) (buildmodel.GetResult, error) {
 	build, err := get(ctx, client.New(options), id)
 	if err != nil {
-		return err
+		return buildmodel.GetResult{}, err
 	}
-	return e.emit(buildmodel.GetResult{Build: ToModel(build, "")})
+	return buildmodel.GetResult{Build: ToModel(build, "")}, nil
 }

@@ -11,17 +11,17 @@ import (
 	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
 )
 
-func (e *Executor) Start(ctx context.Context, options model.Connection, identifier string) error {
+func (e *Executor) Start(ctx context.Context, options model.Connection, identifier string) (appmodel.StartResult, error) {
 	apiClient := client.New(options)
 	application, err := client.ResolveApplication(ctx, apiClient, identifier)
 	if err != nil {
-		return err
+		return appmodel.StartResult{}, err
 	}
 	if application.GetRunning() {
-		return e.emit(appmodel.StartResult{Application: toModel(application), State: "already running; no change"})
+		return appmodel.StartResult{Application: toModel(application), State: "already running; no change"}, nil
 	}
 	if _, err := apiClient.StartApplication(ctx, connect.NewRequest(&api.ApplicationIdRequest{Id: application.GetId()})); err != nil {
-		return client.RPCError("start application", err)
+		return appmodel.StartResult{}, client.RPCError("start application", err)
 	}
-	return e.emit(appmodel.StartResult{Application: toModel(application), State: "started"})
+	return appmodel.StartResult{Application: toModel(application), State: "started"}, nil
 }

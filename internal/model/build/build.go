@@ -19,5 +19,3 @@ type CompletionResult struct {
 	Build     Build
 	Streaming bool
 }
-
-func (CompletionResult) IsEvent() {}

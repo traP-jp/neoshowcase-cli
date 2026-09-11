@@ -8,18 +8,16 @@ import (
 	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
-func (e *Executor) Wait(ctx context.Context, options model.Connection, id string, logs bool) error {
+func (e *Executor) Wait(ctx context.Context, options model.Connection, id string, logs bool, emitLog func(buildmodel.LogResult) error) (buildmodel.CompletionResult, error) {
 	apiClient := client.New(options)
 	build, err := get(ctx, apiClient, id)
 	if err != nil {
-		return client.ContextError(ctx, err)
+		return buildmodel.CompletionResult{}, client.ContextError(ctx, err)
 	}
-	final, err := e.Monitor(ctx, apiClient, build, logs)
+	final, err := e.Monitor(ctx, apiClient, build, logs, emitLog)
 	if err != nil {
-		return err
+		return buildmodel.CompletionResult{}, err
 	}
-	if err := e.emit(buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}); err != nil {
-		return err
-	}
-	return Result(final)
+	result := buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}
+	return result, Result(final)
 }

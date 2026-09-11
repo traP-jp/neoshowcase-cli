@@ -12,30 +12,30 @@ import (
 	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
-func (e *Executor) List(ctx context.Context, options model.Connection, application string, page, limit int32) error {
+func (e *Executor) List(ctx context.Context, options model.Connection, application string, page, limit int32) (buildmodel.ListResult, error) {
 	apiClient := client.New(options)
 	var builds []*api.Build
 	names := map[string]string{}
 	if application != "" {
 		resolved, err := client.ResolveApplication(ctx, apiClient, application)
 		if err != nil {
-			return err
+			return buildmodel.ListResult{}, err
 		}
 		names[resolved.GetId()] = resolved.GetName()
 		response, err := apiClient.GetBuilds(ctx, connect.NewRequest(&api.ApplicationIdRequest{Id: resolved.GetId()}))
 		if err != nil {
-			return client.RPCError("list application builds", err)
+			return buildmodel.ListResult{}, client.RPCError("list application builds", err)
 		}
 		builds = response.Msg.GetBuilds()
 	} else {
 		response, err := apiClient.GetAllBuilds(ctx, connect.NewRequest(&api.GetAllBuildsRequest{Page: page, Limit: limit}))
 		if err != nil {
-			return client.RPCError("list builds", err)
+			return buildmodel.ListResult{}, client.RPCError("list builds", err)
 		}
 		builds = response.Msg.GetBuilds()
 		applications, err := apiClient.GetApplications(ctx, connect.NewRequest(&api.GetApplicationsRequest{Scope: api.GetApplicationsRequest_ALL}))
 		if err != nil {
-			return client.RPCError("list applications for build names", err)
+			return buildmodel.ListResult{}, client.RPCError("list applications for build names", err)
 		}
 		for _, application := range applications.Msg.GetApplications() {
 			names[application.GetId()] = application.GetName()
@@ -60,5 +60,5 @@ func (e *Executor) List(ctx context.Context, options model.Connection, applicati
 	for _, build := range builds {
 		result.Builds = append(result.Builds, ToModel(build, names[build.GetApplicationId()]))
 	}
-	return e.emit(result)
+	return result, nil
 }

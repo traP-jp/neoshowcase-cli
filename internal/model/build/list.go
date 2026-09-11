@@ -11,5 +11,3 @@ func (ListCommand) IsCommand() {}
 type ListResult struct {
 	Builds []Build
 }
-
-func (ListResult) IsEvent() {}

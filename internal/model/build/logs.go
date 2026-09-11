@@ -15,5 +15,3 @@ type LogResult struct {
 	Text      string
 	Streaming bool
 }
-
-func (LogResult) IsEvent() {}

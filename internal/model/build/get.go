@@ -9,5 +9,3 @@ func (GetCommand) IsCommand() {}
 type GetResult struct {
 	Build Build
 }
-
-func (GetResult) IsEvent() {}

@@ -53,13 +53,13 @@ func waitTick(ctx context.Context) error {
 	}
 }
 
-func (e *Executor) streamLog(ctx context.Context, apiClient client.Client, buildID string) error {
+func (e *Executor) streamLog(ctx context.Context, apiClient client.Client, buildID string, emitLog func(buildmodel.LogResult) error) error {
 	stream, err := apiClient.GetBuildLogStream(ctx, connect.NewRequest(&api.BuildIdRequest{BuildId: buildID}))
 	if err != nil {
 		return client.ContextError(ctx, client.RPCError("open build log stream", err))
 	}
 	for stream.Receive() {
-		if err := e.emit(buildmodel.LogResult{BuildID: buildID, Text: string(stream.Msg().GetLog()), Streaming: true}); err != nil {
+		if err := emitLog(buildmodel.LogResult{BuildID: buildID, Text: string(stream.Msg().GetLog()), Streaming: true}); err != nil {
 			return err
 		}
 	}
@@ -72,7 +72,7 @@ func (e *Executor) streamLog(ctx context.Context, apiClient client.Client, build
 	return nil
 }
 
-func (e *Executor) Monitor(ctx context.Context, apiClient client.Client, initial *api.Build, logs bool) (*api.Build, error) {
+func (e *Executor) Monitor(ctx context.Context, apiClient client.Client, initial *api.Build, logs bool, emitLog func(buildmodel.LogResult) error) (*api.Build, error) {
 	build := initial
 	for build.GetStatus() == api.BuildStatus_QUEUED {
 		if err := waitTick(ctx); err != nil {
@@ -90,14 +90,14 @@ func (e *Executor) Monitor(ctx context.Context, apiClient client.Client, initial
 			if err != nil {
 				return nil, client.ContextError(ctx, client.RPCError("get build log", err))
 			}
-			if err := e.emit(buildmodel.LogResult{BuildID: build.GetId(), Text: string(response.Msg.GetLog()), Streaming: true}); err != nil {
+			if err := emitLog(buildmodel.LogResult{BuildID: build.GetId(), Text: string(response.Msg.GetLog()), Streaming: true}); err != nil {
 				return nil, err
 			}
 		}
 		return build, nil
 	}
 	if logs {
-		if err := e.streamLog(ctx, apiClient, build.GetId()); err != nil {
+		if err := e.streamLog(ctx, apiClient, build.GetId(), emitLog); err != nil {
 			return nil, err
 		}
 		final, err := get(ctx, apiClient, build.GetId())

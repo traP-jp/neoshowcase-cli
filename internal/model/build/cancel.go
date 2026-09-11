@@ -10,5 +10,3 @@ type CancelResult struct {
 	Build Build
 	State string
 }
-
-func (CancelResult) IsEvent() {}
