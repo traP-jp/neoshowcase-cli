@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/sirupsen/logrus"
+	appcli "github.com/traP-jp/neoshowcase-cli/internal/cli/app"
+	buildcli "github.com/traP-jp/neoshowcase-cli/internal/cli/build"
+	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
 const description = `Third-party operational CLI for NeoShowcase.
@@ -15,36 +19,12 @@ Information and monitoring commands support text, JSON, and JSON Lines output. S
 
 Every state-changing command requires --allow-mutable-operation on that invocation. This permission cannot be enabled through an environment variable.`
 
-type GlobalOptions struct {
-	Endpoint              string `default:"https://ns.trap.jp" help:"NeoShowcase gateway URL"`
-	Output                string `short:"o" default:"text" enum:"text,json,jsonl" help:"Output format"`
-	LogLevel              string `name:"log-level" default:"warn" help:"Diagnostic log level"`
-	NoColor               bool   `name:"no-color" help:"Disable ANSI colors"`
-	InsecureSkipVerify    bool   `name:"insecure-skip-verify" help:"DANGER: disable TLS certificate verification"`
-	AllowMutableOperation bool   `name:"allow-mutable-operation" help:"Explicitly allow one mutable operation"`
-}
-
 type Command struct {
 	Global GlobalOptions `embed:""`
 
-	App     AppCommand     `cmd:"" help:"Inspect and operate applications"`
-	Build   BuildCommand   `cmd:"" help:"Inspect and operate builds"`
-	Version VersionCommand `cmd:"" help:"Print version information"`
-}
-
-type VersionCommand struct{}
-
-type Environment struct {
-	User       string
-	AuthHeader string
-}
-
-type Invocation struct {
-	Command     *Command
-	Selected    any
-	CommandName string
-	Version     string
-	Environment Environment
+	App     appcli.Command   `cmd:"" help:"Inspect and operate applications"`
+	Build   buildcli.Command `cmd:"" help:"Inspect and operate builds"`
+	Version VersionCommand   `cmd:"" help:"Print version information"`
 }
 
 type CLI struct {
@@ -81,7 +61,7 @@ func New(out, errOut io.Writer, version string) *CLI {
 	return application
 }
 
-func (c *CLI) Parse(args []string) (*Invocation, error) {
+func (c *CLI) Parse(args []string) (*model.Invocation, error) {
 	if c.initialization != nil {
 		return nil, fmt.Errorf("initialize CLI: %w", c.initialization)
 	}
@@ -111,16 +91,10 @@ func (c *CLI) Parse(args []string) (*Invocation, error) {
 	}
 	c.logger.WithField("command", commandPath).Debug("executing command")
 
-	return &Invocation{
-		Command:     c.command,
-		Selected:    parsed.Selected().Target.Addr().Interface(),
-		CommandName: selected,
-		Version:     c.version,
-		Environment: Environment{
-			User:       os.Getenv("NEOSHOWCASE_USER"),
-			AuthHeader: os.Getenv("NEOSHOWCASE_AUTH_HEADER"),
-		},
-	}, nil
+	return validateInvocation(c.command, parsed.Selected().Target.Addr().Interface(), c.version, environment{
+		User:       os.Getenv("NEOSHOWCASE_USER"),
+		AuthHeader: os.Getenv("NEOSHOWCASE_AUTH_HEADER"),
+	}, time.Now())
 }
 
 func (c *CLI) Renderer(format string) *Renderer {

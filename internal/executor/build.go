@@ -10,15 +10,13 @@ import (
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli"
+	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
 const pollInterval = 11 * time.Second
 
-func (e *Executor) BuildList(ctx context.Context, options ConnectionOptions, application string, page, limit int32) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildList(ctx context.Context, options model.Connection, application string, page, limit int32) error {
+	client := newAPIClient(options)
 
 	var builds []*api.Build
 	names := map[string]string{}
@@ -66,11 +64,8 @@ func (e *Executor) BuildList(ctx context.Context, options ConnectionOptions, app
 	return e.output.Builds(builds, names)
 }
 
-func (e *Executor) BuildGet(ctx context.Context, options ConnectionOptions, id string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildGet(ctx context.Context, options model.Connection, id string) error {
+	client := newAPIClient(options)
 	build, err := getBuild(ctx, client, id)
 	if err != nil {
 		return err
@@ -185,11 +180,8 @@ func (e *Executor) monitorBuild(ctx context.Context, client apiClient, initial *
 	return build, nil
 }
 
-func (e *Executor) BuildLogs(ctx context.Context, options ConnectionOptions, id string, follow bool) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildLogs(ctx context.Context, options model.Connection, id string, follow bool) error {
+	client := newAPIClient(options)
 	build, err := getBuild(ctx, client, id)
 	if err != nil {
 		return contextError(ctx, err)
@@ -209,11 +201,8 @@ func (e *Executor) BuildLogs(ctx context.Context, options ConnectionOptions, id 
 	return buildResult(final)
 }
 
-func (e *Executor) BuildWait(ctx context.Context, options ConnectionOptions, id string, logs bool) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildWait(ctx context.Context, options model.Connection, id string, logs bool) error {
+	client := newAPIClient(options)
 	build, err := getBuild(ctx, client, id)
 	if err != nil {
 		return contextError(ctx, err)
@@ -259,11 +248,8 @@ func watchBuild(ctx context.Context, client apiClient, appID, commit string, exc
 	}
 }
 
-func (e *Executor) BuildWatch(ctx context.Context, options ConnectionOptions, application, commit string, logs bool) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildWatch(ctx context.Context, options model.Connection, application, commit string, logs bool) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, application)
 	if err != nil {
 		return contextError(ctx, err)
@@ -290,11 +276,8 @@ func buildIDs(builds []*api.Build) map[string]struct{} {
 	return ids
 }
 
-func (e *Executor) BuildRetry(ctx context.Context, options ConnectionOptions, id string, wait, logs bool) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildRetry(ctx context.Context, options model.Connection, id string, wait, logs bool) error {
+	client := newAPIClient(options)
 	build, err := getBuild(ctx, client, id)
 	if err != nil {
 		return contextError(ctx, err)
@@ -330,11 +313,8 @@ func (e *Executor) BuildRetry(ctx context.Context, options ConnectionOptions, id
 	return buildResult(final)
 }
 
-func (e *Executor) BuildCancel(ctx context.Context, options ConnectionOptions, id string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) BuildCancel(ctx context.Context, options model.Connection, id string) error {
+	client := newAPIClient(options)
 	build, err := getBuild(ctx, client, id)
 	if err != nil {
 		return err

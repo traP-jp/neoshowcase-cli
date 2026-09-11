@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"net/textproto"
-	"net/url"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -15,6 +13,7 @@ import (
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/api/genconnect"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli"
+	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
 type apiClient interface {
@@ -64,44 +63,11 @@ func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) 
 	return t.base.RoundTrip(clone)
 }
 
-func newAPIClient(options ConnectionOptions) (apiClient, error) {
-	parsed, err := url.Parse(options.Endpoint)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return nil, cli.Fail(cli.ExitUsage, "endpoint must be an http(s) URL without user info, a query, or a fragment")
-	}
-	if strings.TrimSpace(options.User) == "" {
-		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user is required (NEOSHOWCASE_USER)")
-	}
-	if strings.ContainsAny(options.User, "\r\n") {
-		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user contains invalid characters")
-	}
-	header := textproto.CanonicalMIMEHeaderKey(options.AuthHeader)
-	if !validHeaderName(header) {
-		return nil, cli.Fail(cli.ExitUsage, "invalid authentication header name")
-	}
+func newAPIClient(options model.Connection) apiClient {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: options.Insecure} //nolint:gosec // gated by an explicit dangerous flag
-	client := &http.Client{Transport: authTransport{base: transport, header: header, user: options.User}}
-	return &connectAPIClient{APIServiceClient: genconnect.NewAPIServiceClient(client, strings.TrimRight(parsed.String(), "/"))}, nil
-}
-
-func validHeaderName(name string) bool {
-	if name == "" {
-		return false
-	}
-	for i := 0; i < len(name); i++ {
-		c := name[i]
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
-			continue
-		}
-		switch c {
-		case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
-			continue
-		default:
-			return false
-		}
-	}
-	return true
+	client := &http.Client{Transport: authTransport{base: transport, header: options.AuthHeader, user: options.User}}
+	return &connectAPIClient{APIServiceClient: genconnect.NewAPIServiceClient(client, strings.TrimRight(options.Endpoint, "/"))}
 }
 
 func rpcError(action string, err error) error {

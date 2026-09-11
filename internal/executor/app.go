@@ -12,13 +12,11 @@ import (
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli"
+	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
-func (e *Executor) AppList(ctx context.Context, options ConnectionOptions) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppList(ctx context.Context, options model.Connection) error {
+	client := newAPIClient(options)
 	response, err := client.GetApplications(ctx, connect.NewRequest(&api.GetApplicationsRequest{Scope: api.GetApplicationsRequest_ALL}))
 	if err != nil {
 		return rpcError("list applications", err)
@@ -28,11 +26,8 @@ func (e *Executor) AppList(ctx context.Context, options ConnectionOptions) error
 	return e.output.Applications(apps)
 }
 
-func (e *Executor) AppGet(ctx context.Context, options ConnectionOptions, identifier string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppGet(ctx context.Context, options model.Connection, identifier string) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return err
@@ -63,11 +58,8 @@ func resolveApplication(ctx context.Context, client apiClient, identifier string
 	return matches[0], nil
 }
 
-func (e *Executor) AppLogs(ctx context.Context, options ConnectionOptions, identifier string, follow bool, tail int32, since time.Time) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppLogs(ctx context.Context, options model.Connection, identifier string, follow bool, tail int32, since time.Time) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return contextError(ctx, err)
@@ -132,11 +124,8 @@ func contextError(ctx context.Context, err error) error {
 	return err
 }
 
-func (e *Executor) AppStart(ctx context.Context, options ConnectionOptions, identifier string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppStart(ctx context.Context, options model.Connection, identifier string) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return err
@@ -150,11 +139,8 @@ func (e *Executor) AppStart(ctx context.Context, options ConnectionOptions, iden
 	return e.output.Mutation(appMutation("app.start", app, "started"))
 }
 
-func (e *Executor) AppStop(ctx context.Context, options ConnectionOptions, identifier string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppStop(ctx context.Context, options model.Connection, identifier string) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return err
@@ -168,11 +154,8 @@ func (e *Executor) AppStop(ctx context.Context, options ConnectionOptions, ident
 	return e.output.Mutation(appMutation("app.stop", app, "stopped"))
 }
 
-func (e *Executor) AppRestart(ctx context.Context, options ConnectionOptions, identifier string) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppRestart(ctx context.Context, options model.Connection, identifier string) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return err
@@ -190,11 +173,8 @@ func appMutation(operation string, app *api.Application, state string) cli.Mutat
 	return cli.Mutation{Operation: operation, ApplicationID: app.GetId(), ApplicationName: app.GetName(), Commit: app.GetCommit(), State: state}
 }
 
-func (e *Executor) AppRebuild(ctx context.Context, options ConnectionOptions, identifier, commit string, wait, logs bool) error {
-	client, err := newAPIClient(options)
-	if err != nil {
-		return err
-	}
+func (e *Executor) AppRebuild(ctx context.Context, options model.Connection, identifier, commit string, wait, logs bool) error {
+	client := newAPIClient(options)
 	app, err := resolveApplication(ctx, client, identifier)
 	if err != nil {
 		return contextError(ctx, err)

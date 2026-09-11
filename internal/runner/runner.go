@@ -13,7 +13,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer, version 
 	application := cli.New(out, errOut, version)
 	invocation, err := application.Parse(args)
 	if err == nil && invocation != nil {
-		renderer := application.Renderer(invocation.Command.Global.Output)
+		renderer := application.Renderer(invocation.Output)
 		err = executor.New(renderer).Execute(ctx, invocation)
 	}
 	if err == nil {
