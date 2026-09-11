@@ -89,8 +89,7 @@ func (p *Parser) Parse(args []string) (*model.Invocation, error) {
 	p.logger.WithField("command", commandPath).Debug("executing command")
 
 	return validateInvocation(p.command, parsed.Selected().Target.Addr().Interface(), p.version, environment{
-		User:       os.Getenv("NEOSHOWCASE_USER"),
-		AuthHeader: os.Getenv("NEOSHOWCASE_AUTH_HEADER"),
+		SessionCookie: os.Getenv("NEOSHOWCASE_SESSION_COOKIE"),
 	}, time.Now())
 }
 

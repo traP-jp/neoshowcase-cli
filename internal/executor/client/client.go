@@ -49,23 +49,22 @@ func (c *connectClient) GetBuildLogStream(ctx context.Context, request *connect.
 	return c.APIServiceClient.GetBuildLogStream(ctx, request)
 }
 
-type authTransport struct {
-	base   http.RoundTripper
-	header string
-	user   string
+type sessionCookieTransport struct {
+	base          http.RoundTripper
+	sessionCookie string
 }
 
-func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+func (t sessionCookieTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	clone := request.Clone(request.Context())
 	clone.Header = request.Header.Clone()
-	clone.Header.Set(t.header, t.user)
+	clone.Header.Set("Cookie", t.sessionCookie)
 	return t.base.RoundTrip(clone)
 }
 
 func New(options model.Connection) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-	httpClient := &http.Client{Transport: authTransport{base: transport, header: options.AuthHeader, user: options.User}}
+	httpClient := &http.Client{Transport: sessionCookieTransport{base: transport, sessionCookie: options.SessionCookie}}
 	return &connectClient{APIServiceClient: genconnect.NewAPIServiceClient(httpClient, strings.TrimRight(options.Endpoint, "/"))}
 }
 

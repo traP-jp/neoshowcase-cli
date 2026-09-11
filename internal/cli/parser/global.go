@@ -14,12 +14,11 @@ type GlobalOptions struct {
 }
 
 type environment struct {
-	User       string
-	AuthHeader string
+	SessionCookie string
 }
 
 func (options GlobalOptions) validateConnection(env environment) (model.Connection, error) {
-	connection, err := validation.Connection(options.Endpoint, env.User, env.AuthHeader)
+	connection, err := validation.Connection(options.Endpoint, env.SessionCookie)
 	if err != nil {
 		return model.Connection{}, model.NewError(model.ErrorUsage, "%v", err)
 	}
