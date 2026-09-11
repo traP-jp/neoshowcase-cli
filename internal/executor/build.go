@@ -14,7 +14,7 @@ import (
 
 const pollInterval = 11 * time.Second
 
-func (e *Executor) BuildList(ctx context.Context, options cli.ConnectionOptions, application string, page, limit int32) error {
+func (e *Executor) BuildList(ctx context.Context, options ConnectionOptions, application string, page, limit int32) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (e *Executor) BuildList(ctx context.Context, options cli.ConnectionOptions,
 	return e.output.Builds(builds, names)
 }
 
-func (e *Executor) BuildGet(ctx context.Context, options cli.ConnectionOptions, id string) error {
+func (e *Executor) BuildGet(ctx context.Context, options ConnectionOptions, id string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -185,7 +185,7 @@ func (e *Executor) monitorBuild(ctx context.Context, client apiClient, initial *
 	return build, nil
 }
 
-func (e *Executor) BuildLogs(ctx context.Context, options cli.ConnectionOptions, id string, follow bool) error {
+func (e *Executor) BuildLogs(ctx context.Context, options ConnectionOptions, id string, follow bool) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -209,7 +209,7 @@ func (e *Executor) BuildLogs(ctx context.Context, options cli.ConnectionOptions,
 	return buildResult(final)
 }
 
-func (e *Executor) BuildWait(ctx context.Context, options cli.ConnectionOptions, id string, logs bool) error {
+func (e *Executor) BuildWait(ctx context.Context, options ConnectionOptions, id string, logs bool) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func watchBuild(ctx context.Context, client apiClient, appID, commit string, exc
 	}
 }
 
-func (e *Executor) BuildWatch(ctx context.Context, options cli.ConnectionOptions, application, commit string, logs bool) error {
+func (e *Executor) BuildWatch(ctx context.Context, options ConnectionOptions, application, commit string, logs bool) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -290,7 +290,7 @@ func buildIDs(builds []*api.Build) map[string]struct{} {
 	return ids
 }
 
-func (e *Executor) BuildRetry(ctx context.Context, options cli.ConnectionOptions, id string, wait, logs bool) error {
+func (e *Executor) BuildRetry(ctx context.Context, options ConnectionOptions, id string, wait, logs bool) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -314,7 +314,7 @@ func (e *Executor) BuildRetry(ctx context.Context, options cli.ConnectionOptions
 		return contextError(ctx, rpcError("retry build", err))
 	}
 	if !wait {
-		return e.output.Mutation(cli.MutationResult{Operation: "build.retry", SourceBuildID: build.GetId(), ApplicationID: build.GetApplicationId(), Commit: build.GetCommit(), State: "requested"})
+		return e.output.Mutation(cli.Mutation{Operation: "build.retry", SourceBuildID: build.GetId(), ApplicationID: build.GetApplicationId(), Commit: build.GetCommit(), State: "requested"})
 	}
 	newBuild, err := watchBuild(ctx, client, build.GetApplicationId(), build.GetCommit(), excluded)
 	if err != nil {
@@ -330,7 +330,7 @@ func (e *Executor) BuildRetry(ctx context.Context, options cli.ConnectionOptions
 	return buildResult(final)
 }
 
-func (e *Executor) BuildCancel(ctx context.Context, options cli.ConnectionOptions, id string) error {
+func (e *Executor) BuildCancel(ctx context.Context, options ConnectionOptions, id string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func (e *Executor) BuildCancel(ctx context.Context, options cli.ConnectionOption
 	if err != nil {
 		return err
 	}
-	result := cli.MutationResult{Operation: "build.cancel", BuildID: build.GetId(), ApplicationID: build.GetApplicationId(), Commit: build.GetCommit(), Status: build.GetStatus().String()}
+	result := cli.Mutation{Operation: "build.cancel", BuildID: build.GetId(), ApplicationID: build.GetApplicationId(), Commit: build.GetCommit(), Status: build.GetStatus().String()}
 	if terminal(build.GetStatus()) {
 		result.State = "already terminal; no change"
 		return e.output.Mutation(result)

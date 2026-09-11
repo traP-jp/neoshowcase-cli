@@ -10,11 +10,12 @@ import (
 )
 
 func Execute(ctx context.Context, args []string, out, errOut io.Writer, version string) int {
-	application := cli.New(out, errOut, version, executor.New)
-	command := application.Command()
-	command.SetArgs(args)
-
-	err := command.ExecuteContext(ctx)
+	application := cli.New(out, errOut, version)
+	invocation, err := application.Parse(args)
+	if err == nil && invocation != nil {
+		renderer := application.Renderer(invocation.Command.Global.Output)
+		err = executor.New(renderer).Execute(ctx, invocation)
+	}
 	if err == nil {
 		return cli.ExitOK
 	}

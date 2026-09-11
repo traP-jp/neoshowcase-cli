@@ -14,7 +14,7 @@ import (
 	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 )
 
-func (e *Executor) AppList(ctx context.Context, options cli.ConnectionOptions) error {
+func (e *Executor) AppList(ctx context.Context, options ConnectionOptions) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func (e *Executor) AppList(ctx context.Context, options cli.ConnectionOptions) e
 	return e.output.Applications(apps)
 }
 
-func (e *Executor) AppGet(ctx context.Context, options cli.ConnectionOptions, identifier string) error {
+func (e *Executor) AppGet(ctx context.Context, options ConnectionOptions, identifier string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func resolveApplication(ctx context.Context, client apiClient, identifier string
 	return matches[0], nil
 }
 
-func (e *Executor) AppLogs(ctx context.Context, options cli.ConnectionOptions, identifier string, follow bool, tail int32, since time.Time) error {
+func (e *Executor) AppLogs(ctx context.Context, options ConnectionOptions, identifier string, follow bool, tail int32, since time.Time) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func contextError(ctx context.Context, err error) error {
 	return err
 }
 
-func (e *Executor) AppStart(ctx context.Context, options cli.ConnectionOptions, identifier string) error {
+func (e *Executor) AppStart(ctx context.Context, options ConnectionOptions, identifier string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func (e *Executor) AppStart(ctx context.Context, options cli.ConnectionOptions, 
 	return e.output.Mutation(appMutation("app.start", app, "started"))
 }
 
-func (e *Executor) AppStop(ctx context.Context, options cli.ConnectionOptions, identifier string) error {
+func (e *Executor) AppStop(ctx context.Context, options ConnectionOptions, identifier string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -168,7 +168,7 @@ func (e *Executor) AppStop(ctx context.Context, options cli.ConnectionOptions, i
 	return e.output.Mutation(appMutation("app.stop", app, "stopped"))
 }
 
-func (e *Executor) AppRestart(ctx context.Context, options cli.ConnectionOptions, identifier string) error {
+func (e *Executor) AppRestart(ctx context.Context, options ConnectionOptions, identifier string) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -186,11 +186,11 @@ func (e *Executor) AppRestart(ctx context.Context, options cli.ConnectionOptions
 	return e.output.Mutation(appMutation("app.restart", app, "restart requested (state check was non-atomic)"))
 }
 
-func appMutation(operation string, app *api.Application, state string) cli.MutationResult {
-	return cli.MutationResult{Operation: operation, ApplicationID: app.GetId(), ApplicationName: app.GetName(), Commit: app.GetCommit(), State: state}
+func appMutation(operation string, app *api.Application, state string) cli.Mutation {
+	return cli.Mutation{Operation: operation, ApplicationID: app.GetId(), ApplicationName: app.GetName(), Commit: app.GetCommit(), State: state}
 }
 
-func (e *Executor) AppRebuild(ctx context.Context, options cli.ConnectionOptions, identifier, commit string, wait, logs bool) error {
+func (e *Executor) AppRebuild(ctx context.Context, options ConnectionOptions, identifier, commit string, wait, logs bool) error {
 	client, err := newAPIClient(options)
 	if err != nil {
 		return err
@@ -218,7 +218,7 @@ func (e *Executor) AppRebuild(ctx context.Context, options cli.ConnectionOptions
 		return contextError(ctx, rpcError("rebuild application", err))
 	}
 	if !wait {
-		return e.output.Mutation(cli.MutationResult{Operation: "app.rebuild", ApplicationID: app.GetId(), ApplicationName: app.GetName(), Commit: selectedCommit, State: "requested"})
+		return e.output.Mutation(cli.Mutation{Operation: "app.rebuild", ApplicationID: app.GetId(), ApplicationName: app.GetName(), Commit: selectedCommit, State: "requested"})
 	}
 	build, err := watchBuild(ctx, client, app.GetId(), selectedCommit, excluded)
 	if err != nil {

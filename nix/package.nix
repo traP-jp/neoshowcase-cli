@@ -9,7 +9,7 @@ buildGoModule {
   version = "0.1.0";
   inherit src;
 
-  vendorHash = "sha256-fabHvKgIxJlaIfM4tASPQ+sOs4wDPuSyXa1SMuOR7yw=";
+  vendorHash = "sha256-9oCFmML2HP6KfXXlsr/iCI5lLP01fK9OR8WlLWWwh3w=";
   subPackages = [ "cmd/neoshowcase-cli" ];
   ldflags = [
     "-s"

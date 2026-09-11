@@ -64,13 +64,13 @@ func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) 
 	return t.base.RoundTrip(clone)
 }
 
-func newAPIClient(options cli.ConnectionOptions) (apiClient, error) {
+func newAPIClient(options ConnectionOptions) (apiClient, error) {
 	parsed, err := url.Parse(options.Endpoint)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return nil, cli.Fail(cli.ExitUsage, "endpoint must be an http(s) URL without user info, a query, or a fragment")
 	}
 	if strings.TrimSpace(options.User) == "" {
-		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user is required (--user or NEOSHOWCASE_USER)")
+		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user is required (NEOSHOWCASE_USER)")
 	}
 	if strings.ContainsAny(options.User, "\r\n") {
 		return nil, cli.Fail(cli.ExitUsage, "NeoShowcase user contains invalid characters")
