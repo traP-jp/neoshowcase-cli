@@ -1,5 +1,18 @@
 # neoshowcase-cli
 
-`neoshowcase-cli` is a third-party operational client for NeoShowcase. It reads application and build state, follows logs, waits for builds, and performs a small set of explicitly guarded runtime operations. Declarative configuration of repositories, applications, and environment variables remains outside its scope.
+Command line client for [NeoShowcase](https://github.com/traptitech/neoshowcase).
 
-See [Usage](docs/usage.md) for installation, configuration, commands, output formats, and security considerations.
+> [!IMPORTANT]
+> This is a community-driven project. Please do not report issues with this application to the NeoShowcase team.
+
+## Before use
+
+`neoshowcase-cli` intentionally does not support some API endpoints. To manage the declarative state of your applications, use [terraform-provider-neoshowcase](https://github.com/traP-jp/terraform-provider-neoshowcase).
+
+## Documentation
+
+- [Usage](docs/usage.md)
+
+## License
+
+[MIT](LICENSE)
