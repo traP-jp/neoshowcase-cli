@@ -1,4 +1,4 @@
-package executor
+package client
 
 import (
 	"context"
@@ -16,11 +16,11 @@ import (
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
-type apiClient interface {
+type Client interface {
 	GetApplications(context.Context, *connect.Request[api.GetApplicationsRequest]) (*connect.Response[api.GetApplicationsResponse], error)
 	GetApplication(context.Context, *connect.Request[api.ApplicationIdRequest]) (*connect.Response[api.Application], error)
 	GetOutput(context.Context, *connect.Request[api.GetOutputRequest]) (*connect.Response[api.ApplicationOutputs], error)
-	GetOutputStream(context.Context, *connect.Request[api.GetOutputStreamRequest]) (messageStream[api.ApplicationOutput], error)
+	GetOutputStream(context.Context, *connect.Request[api.GetOutputStreamRequest]) (MessageStream[api.ApplicationOutput], error)
 	StartApplication(context.Context, *connect.Request[api.ApplicationIdRequest]) (*connect.Response[emptypb.Empty], error)
 	StopApplication(context.Context, *connect.Request[api.ApplicationIdRequest]) (*connect.Response[emptypb.Empty], error)
 	GetAllBuilds(context.Context, *connect.Request[api.GetAllBuildsRequest]) (*connect.Response[api.GetBuildsResponse], error)
@@ -29,25 +29,25 @@ type apiClient interface {
 	RetryCommitBuild(context.Context, *connect.Request[api.RetryCommitBuildRequest]) (*connect.Response[emptypb.Empty], error)
 	CancelBuild(context.Context, *connect.Request[api.BuildIdRequest]) (*connect.Response[emptypb.Empty], error)
 	GetBuildLog(context.Context, *connect.Request[api.BuildIdRequest]) (*connect.Response[api.BuildLog], error)
-	GetBuildLogStream(context.Context, *connect.Request[api.BuildIdRequest]) (messageStream[api.BuildLog], error)
+	GetBuildLogStream(context.Context, *connect.Request[api.BuildIdRequest]) (MessageStream[api.BuildLog], error)
 }
 
-type messageStream[T any] interface {
+type MessageStream[T any] interface {
 	Receive() bool
 	Msg() *T
 	Err() error
 }
 
-type connectAPIClient struct {
+type connectClient struct {
 	genconnect.APIServiceClient
 }
 
-func (c *connectAPIClient) GetOutputStream(ctx context.Context, req *connect.Request[api.GetOutputStreamRequest]) (messageStream[api.ApplicationOutput], error) {
-	return c.APIServiceClient.GetOutputStream(ctx, req)
+func (c *connectClient) GetOutputStream(ctx context.Context, request *connect.Request[api.GetOutputStreamRequest]) (MessageStream[api.ApplicationOutput], error) {
+	return c.APIServiceClient.GetOutputStream(ctx, request)
 }
 
-func (c *connectAPIClient) GetBuildLogStream(ctx context.Context, req *connect.Request[api.BuildIdRequest]) (messageStream[api.BuildLog], error) {
-	return c.APIServiceClient.GetBuildLogStream(ctx, req)
+func (c *connectClient) GetBuildLogStream(ctx context.Context, request *connect.Request[api.BuildIdRequest]) (MessageStream[api.BuildLog], error) {
+	return c.APIServiceClient.GetBuildLogStream(ctx, request)
 }
 
 type authTransport struct {
@@ -63,14 +63,47 @@ func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) 
 	return t.base.RoundTrip(clone)
 }
 
-func newAPIClient(options model.Connection) apiClient {
+func New(options model.Connection) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: options.Insecure} //nolint:gosec // gated by an explicit dangerous flag
-	client := &http.Client{Transport: authTransport{base: transport, header: options.AuthHeader, user: options.User}}
-	return &connectAPIClient{APIServiceClient: genconnect.NewAPIServiceClient(client, strings.TrimRight(options.Endpoint, "/"))}
+	httpClient := &http.Client{Transport: authTransport{base: transport, header: options.AuthHeader, user: options.User}}
+	return &connectClient{APIServiceClient: genconnect.NewAPIServiceClient(httpClient, strings.TrimRight(options.Endpoint, "/"))}
 }
 
-func rpcError(action string, err error) error {
+func ResolveApplication(ctx context.Context, apiClient Client, identifier string) (*api.Application, error) {
+	response, err := apiClient.GetApplications(ctx, connect.NewRequest(&api.GetApplicationsRequest{Scope: api.GetApplicationsRequest_ALL}))
+	if err != nil {
+		return nil, RPCError("resolve application", err)
+	}
+	var matches []*api.Application
+	for _, application := range response.Msg.GetApplications() {
+		if application.GetId() == identifier {
+			return application, nil
+		}
+		if application.GetName() == identifier {
+			matches = append(matches, application)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, cli.Fail(cli.ExitNotFound, "application %q not found", identifier)
+	}
+	if len(matches) > 1 {
+		return nil, cli.Fail(cli.ExitNotFound, "application name %q is ambiguous (%d exact matches)", identifier, len(matches))
+	}
+	return matches[0], nil
+}
+
+func ContextError(ctx context.Context, err error) error {
+	if ctx.Err() == context.DeadlineExceeded {
+		return cli.Fail(cli.ExitTimeout, "command timed out")
+	}
+	if ctx.Err() == context.Canceled {
+		return cli.Fail(cli.ExitInterrupt, "command interrupted")
+	}
+	return err
+}
+
+func RPCError(action string, err error) error {
 	if connect.CodeOf(err) == connect.CodeNotFound {
 		return cli.Fail(cli.ExitNotFound, "%s: target not found", action)
 	}
