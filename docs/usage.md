@@ -26,6 +26,6 @@ Run `neoshowcase-cli --help` or `neoshowcase-cli <command> --help` for available
 
 ## Security
 
-TLS certificate verification is enabled by default and Go's standard CA configuration, including `SSL_CERT_FILE`, is honored. The explicit `--insecure-skip-verify` option prints a warning and should only be used for controlled testing. Authentication identity is never intentionally printed.
+TLS certificate verification is always enabled, and Go's standard CA configuration, including `SSL_CERT_FILE`, is honored. Authentication identity is never intentionally printed.
 
 Application and build logs can contain secrets. Treat captured text, JSON, and JSON Lines output as sensitive data. Nix evaluation and builds do not read the authentication environment variables; they are consumed only when the CLI runs.

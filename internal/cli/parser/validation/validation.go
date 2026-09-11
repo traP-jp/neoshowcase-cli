@@ -26,7 +26,7 @@ func Timeout(timeout time.Duration) error {
 	return nil
 }
 
-func Connection(endpoint, user, authHeader string, insecure bool) (model.Connection, error) {
+func Connection(endpoint, user, authHeader string) (model.Connection, error) {
 	endpoint = strings.TrimSpace(endpoint)
 	parsed, err := url.Parse(endpoint)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
@@ -43,7 +43,7 @@ func Connection(endpoint, user, authHeader string, insecure bool) (model.Connect
 	if !validHeaderName(authHeader) {
 		return model.Connection{}, fmt.Errorf("invalid authentication header name")
 	}
-	return model.Connection{Endpoint: endpoint, User: user, AuthHeader: authHeader, Insecure: insecure}, nil
+	return model.Connection{Endpoint: endpoint, User: user, AuthHeader: authHeader}, nil
 }
 
 func firstNonEmpty(values ...string) string {

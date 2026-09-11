@@ -35,9 +35,6 @@ func run(ctx context.Context, args []string, out, errOut io.Writer, version stri
 	commandParser := parser.New(out, errOut, version)
 	invocation, err := commandParser.Parse(args)
 	if err == nil && invocation != nil {
-		if invocation.Connection.Insecure {
-			commandParser.Warn("TLS certificate verification is disabled")
-		}
 		err = execute(ctx, invocation, out)
 	}
 	if err == nil {

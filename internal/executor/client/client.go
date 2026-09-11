@@ -64,7 +64,7 @@ func (t authTransport) RoundTrip(request *http.Request) (*http.Response, error) 
 
 func New(options model.Connection) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: options.Insecure} //nolint:gosec // gated by an explicit dangerous flag
+	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	httpClient := &http.Client{Transport: authTransport{base: transport, header: options.AuthHeader, user: options.User}}
 	return &connectClient{APIServiceClient: genconnect.NewAPIServiceClient(httpClient, strings.TrimRight(options.Endpoint, "/"))}
 }

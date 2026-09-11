@@ -10,7 +10,6 @@ type GlobalOptions struct {
 	Output                string `short:"o" default:"text" enum:"text,json,jsonl" help:"Output format"`
 	LogLevel              string `name:"log-level" default:"warn" help:"Diagnostic log level"`
 	NoColor               bool   `name:"no-color" help:"Disable ANSI colors"`
-	InsecureSkipVerify    bool   `name:"insecure-skip-verify" help:"DANGER: disable TLS certificate verification"`
 	AllowMutableOperation bool   `name:"allow-mutable-operation" help:"Explicitly allow one mutable operation"`
 }
 
@@ -20,7 +19,7 @@ type environment struct {
 }
 
 func (options GlobalOptions) validateConnection(env environment) (model.Connection, error) {
-	connection, err := validation.Connection(options.Endpoint, env.User, env.AuthHeader, options.InsecureSkipVerify)
+	connection, err := validation.Connection(options.Endpoint, env.User, env.AuthHeader)
 	if err != nil {
 		return model.Connection{}, model.NewError(model.ErrorUsage, "%v", err)
 	}
