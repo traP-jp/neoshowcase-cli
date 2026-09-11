@@ -1,9 +1,11 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	clioutput "github.com/traP-jp/neoshowcase-cli/internal/cli/output"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli/validation"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
@@ -32,4 +34,16 @@ func (command *RebuildCommand) Validate(context ValidationContext) (model.Comman
 		timeout = command.Timeout
 	}
 	return appmodel.RebuildCommand{Application: command.Application, Commit: strings.TrimSpace(command.Commit), Wait: wait, Logs: command.Logs, Timeout: timeout}, nil
+}
+
+func RenderRebuild(renderer *clioutput.Renderer, result appmodel.RebuildRequested) error {
+	value := map[string]any{
+		"operation":        "app.rebuild",
+		"application_id":   result.Application.ID,
+		"application_name": result.Application.Name,
+		"commit":           result.Commit,
+		"state":            "requested",
+	}
+	text := fmt.Sprintf("rebuild requested: %s (%s) commit %s", result.Application.Name, result.Application.ID, result.Commit)
+	return renderer.WriteValue(value, text)
 }

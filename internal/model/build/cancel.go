@@ -5,3 +5,10 @@ type CancelCommand struct {
 }
 
 func (CancelCommand) IsCommand() {}
+
+type CancelResult struct {
+	Build Build
+	State string
+}
+
+func (CancelResult) IsEvent() {}

@@ -12,6 +12,7 @@ import (
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
 )
 
 func (e *Executor) Logs(ctx context.Context, options model.Connection, identifier string, follow bool, tail int32, since time.Time) error {
@@ -27,7 +28,7 @@ func (e *Executor) Logs(ctx context.Context, options model.Connection, identifie
 	}
 	outputs := response.Msg.GetOutputs()
 	sort.SliceStable(outputs, func(i, j int) bool { return outputs[i].GetTime().AsTime().Before(outputs[j].GetTime().AsTime()) })
-	filtered := make([]*api.ApplicationOutput, 0, len(outputs))
+	filtered := make([]appmodel.Log, 0, len(outputs))
 	var cursor time.Time
 	for _, output := range outputs {
 		at := output.GetTime().AsTime()
@@ -35,10 +36,10 @@ func (e *Executor) Logs(ctx context.Context, options model.Connection, identifie
 			cursor = at
 		}
 		if since.IsZero() || !at.Before(since) {
-			filtered = append(filtered, output)
+			filtered = append(filtered, appmodel.Log{ApplicationID: application.GetId(), Time: at, Text: output.GetLog()})
 		}
 	}
-	if err := e.output.ApplicationLogs(application.GetId(), filtered, follow); err != nil {
+	if err := e.emit(appmodel.LogsResult{Logs: filtered, Streaming: follow}); err != nil {
 		return err
 	}
 	if !follow {
@@ -57,7 +58,9 @@ func (e *Executor) Logs(ctx context.Context, options model.Connection, identifie
 		return client.ContextError(ctx, client.RPCError("follow application logs", err))
 	}
 	for stream.Receive() {
-		if err := e.output.ApplicationLogs(application.GetId(), []*api.ApplicationOutput{stream.Msg()}, true); err != nil {
+		message := stream.Msg()
+		entry := appmodel.Log{ApplicationID: application.GetId(), Time: message.GetTime().AsTime(), Text: message.GetLog()}
+		if err := e.emit(appmodel.LogsResult{Logs: []appmodel.Log{entry}, Streaming: true}); err != nil {
 			return err
 		}
 	}

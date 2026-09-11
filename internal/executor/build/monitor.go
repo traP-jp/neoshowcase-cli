@@ -8,8 +8,9 @@ import (
 	"connectrpc.com/connect"
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
+	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 const pollInterval = 11 * time.Second
@@ -36,7 +37,7 @@ func Result(build *api.Build) error {
 		return nil
 	}
 	if terminal(build.GetStatus()) {
-		return cli.Fail(cli.ExitFailure, "build %s finished with status %s", build.GetId(), build.GetStatus())
+		return model.NewError(model.ErrorFailure, "build %s finished with status %s", build.GetId(), build.GetStatus())
 	}
 	return fmt.Errorf("build %s is not in a terminal state (%s)", build.GetId(), build.GetStatus())
 }
@@ -58,7 +59,7 @@ func (e *Executor) streamLog(ctx context.Context, apiClient client.Client, build
 		return client.ContextError(ctx, client.RPCError("open build log stream", err))
 	}
 	for stream.Receive() {
-		if err := e.output.BuildLog(buildID, stream.Msg().GetLog(), true); err != nil {
+		if err := e.emit(buildmodel.LogResult{BuildID: buildID, Text: string(stream.Msg().GetLog()), Streaming: true}); err != nil {
 			return err
 		}
 	}
@@ -89,7 +90,7 @@ func (e *Executor) Monitor(ctx context.Context, apiClient client.Client, initial
 			if err != nil {
 				return nil, client.ContextError(ctx, client.RPCError("get build log", err))
 			}
-			if err := e.output.BuildLog(build.GetId(), response.Msg.GetLog(), true); err != nil {
+			if err := e.emit(buildmodel.LogResult{BuildID: build.GetId(), Text: string(response.Msg.GetLog()), Streaming: true}); err != nil {
 				return nil, err
 			}
 		}

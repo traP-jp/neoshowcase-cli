@@ -9,3 +9,11 @@ type LogsCommand struct {
 }
 
 func (LogsCommand) IsCommand() {}
+
+type LogResult struct {
+	BuildID   string
+	Text      string
+	Streaming bool
+}
+
+func (LogResult) IsEvent() {}

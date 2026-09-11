@@ -5,3 +5,9 @@ type GetCommand struct {
 }
 
 func (GetCommand) IsCommand() {}
+
+type GetResult struct {
+	Application Application
+}
+
+func (GetResult) IsEvent() {}

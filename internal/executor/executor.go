@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 	appexecutor "github.com/traP-jp/neoshowcase-cli/internal/executor/app"
 	buildexecutor "github.com/traP-jp/neoshowcase-cli/internal/executor/build"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
@@ -14,25 +13,22 @@ import (
 )
 
 type Executor struct {
-	output *cli.Renderer
 	apps   *appexecutor.Executor
 	builds *buildexecutor.Executor
+	emit   model.Emit
 }
 
-func New(output *cli.Renderer) *Executor {
-	builds := buildexecutor.New(output)
-	return &Executor{output: output, apps: appexecutor.New(output, builds), builds: builds}
+func New(emit model.Emit) *Executor {
+	builds := buildexecutor.New(emit)
+	return &Executor{apps: appexecutor.New(emit, builds), builds: builds, emit: emit}
 }
 
 func (e *Executor) Execute(ctx context.Context, invocation *model.Invocation) error {
-	if invocation.Connection.Insecure {
-		e.output.Warn("TLS certificate verification is disabled")
-	}
 	connection := invocation.Connection
 
 	switch command := invocation.Command.(type) {
 	case model.VersionCommand:
-		return e.output.Version(command.Version)
+		return e.emit(model.VersionResult{Version: command.Version})
 	case appmodel.ListCommand:
 		return e.apps.List(ctx, connection)
 	case appmodel.GetCommand:

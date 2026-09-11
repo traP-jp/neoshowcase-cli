@@ -5,6 +5,7 @@ import (
 
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) Get(ctx context.Context, options model.Connection, id string) error {
@@ -12,5 +13,5 @@ func (e *Executor) Get(ctx context.Context, options model.Connection, id string)
 	if err != nil {
 		return err
 	}
-	return e.output.BuildDetails(build)
+	return e.emit(buildmodel.GetResult{Build: ToModel(build, "")})
 }

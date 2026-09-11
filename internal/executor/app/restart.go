@@ -9,6 +9,7 @@ import (
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
 )
 
 func (e *Executor) Restart(ctx context.Context, options model.Connection, identifier string) error {
@@ -23,5 +24,5 @@ func (e *Executor) Restart(ctx context.Context, options model.Connection, identi
 	if _, err := apiClient.StartApplication(ctx, connect.NewRequest(&api.ApplicationIdRequest{Id: application.GetId()})); err != nil {
 		return client.RPCError("restart application (state check is non-atomic)", err)
 	}
-	return e.output.Mutation(mutation("app.restart", application, "restart requested (state check was non-atomic)"))
+	return e.emit(appmodel.RestartResult{Application: toModel(application), State: "restart requested (state check was non-atomic)"})
 }

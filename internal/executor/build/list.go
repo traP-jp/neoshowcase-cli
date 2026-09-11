@@ -9,6 +9,7 @@ import (
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) List(ctx context.Context, options model.Connection, application string, page, limit int32) error {
@@ -55,5 +56,9 @@ func (e *Executor) List(ctx context.Context, options model.Connection, applicati
 			builds = builds[int(start):int(end)]
 		}
 	}
-	return e.output.Builds(builds, names)
+	result := buildmodel.ListResult{Builds: make([]buildmodel.Build, 0, len(builds))}
+	for _, build := range builds {
+		result.Builds = append(result.Builds, ToModel(build, names[build.GetApplicationId()]))
+	}
+	return e.emit(result)
 }

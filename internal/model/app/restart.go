@@ -5,3 +5,10 @@ type RestartCommand struct {
 }
 
 func (RestartCommand) IsCommand() {}
+
+type RestartResult struct {
+	Application Application
+	State       string
+}
+
+func (RestartResult) IsEvent() {}

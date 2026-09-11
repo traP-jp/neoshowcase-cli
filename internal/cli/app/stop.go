@@ -1,6 +1,7 @@
 package app
 
 import (
+	clioutput "github.com/traP-jp/neoshowcase-cli/internal/cli/output"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli/validation"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
@@ -15,4 +16,8 @@ func (command *StopCommand) Validate(context ValidationContext) (model.Command, 
 		return nil, err
 	}
 	return appmodel.StopCommand{Application: command.Application}, nil
+}
+
+func RenderStop(renderer *clioutput.Renderer, result appmodel.StopResult) error {
+	return renderState(renderer, "app.stop", result.Application, result.State)
 }

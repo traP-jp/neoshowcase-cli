@@ -8,6 +8,7 @@ import (
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) Logs(ctx context.Context, options model.Connection, id string, follow bool) error {
@@ -21,7 +22,7 @@ func (e *Executor) Logs(ctx context.Context, options model.Connection, id string
 		if err != nil {
 			return client.ContextError(ctx, client.RPCError("get build log", err))
 		}
-		return e.output.BuildLog(build.GetId(), response.Msg.GetLog(), false)
+		return e.emit(buildmodel.LogResult{BuildID: build.GetId(), Text: string(response.Msg.GetLog())})
 	}
 	_ = follow // In-progress logs always follow the sole server stream.
 	final, err := e.Monitor(ctx, apiClient, build, true)

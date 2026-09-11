@@ -14,7 +14,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer, version 
 	invocation, err := application.Parse(args)
 	if err == nil && invocation != nil {
 		renderer := application.Renderer(invocation.Output)
-		err = executor.New(renderer).Execute(ctx, invocation)
+		if invocation.Connection.Insecure {
+			application.Warn("TLS certificate verification is disabled")
+		}
+		err = executor.New(renderer.Render).Execute(ctx, invocation)
 	}
 	if err == nil {
 		return cli.ExitOK

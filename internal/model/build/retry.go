@@ -10,3 +10,9 @@ type RetryCommand struct {
 }
 
 func (RetryCommand) IsCommand() {}
+
+type RetryRequested struct {
+	Build Build
+}
+
+func (RetryRequested) IsEvent() {}

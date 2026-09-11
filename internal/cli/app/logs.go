@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	clioutput "github.com/traP-jp/neoshowcase-cli/internal/cli/output"
 	"github.com/traP-jp/neoshowcase-cli/internal/cli/validation"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
@@ -52,4 +53,37 @@ func parseSince(value string, now time.Time) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("--since must be RFC 3339 or a relative duration: %v", err)
 	}
 	return parsed, nil
+}
+
+func RenderLogs(renderer *clioutput.Renderer, result appmodel.LogsResult) error {
+	entries := make([]clioutput.Log, 0, len(result.Logs))
+	for _, log := range result.Logs {
+		entry := clioutput.Log{ApplicationID: log.ApplicationID, Time: utc(log.Time), Text: log.Text}
+		entries = append(entries, entry)
+		if result.Streaming {
+			if err := renderer.WriteLog(entry, true); err != nil {
+				return err
+			}
+		}
+	}
+	if result.Streaming {
+		return nil
+	}
+	if renderer.Format() == "text" {
+		for _, entry := range entries {
+			if err := renderer.WriteLog(entry, false); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if renderer.Format() == "jsonl" {
+		for _, entry := range entries {
+			if err := renderer.WriteJSONLine(entry); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return renderer.WriteValue(entries, "")
 }

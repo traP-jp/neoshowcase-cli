@@ -5,3 +5,10 @@ type StartCommand struct {
 }
 
 func (StartCommand) IsCommand() {}
+
+type StartResult struct {
+	Application Application
+	State       string
+}
+
+func (StartResult) IsEvent() {}

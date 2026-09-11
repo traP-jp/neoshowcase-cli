@@ -5,6 +5,7 @@ import (
 
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
 )
 
 func (e *Executor) Get(ctx context.Context, options model.Connection, identifier string) error {
@@ -12,5 +13,5 @@ func (e *Executor) Get(ctx context.Context, options model.Connection, identifier
 	if err != nil {
 		return err
 	}
-	return e.output.Application(application)
+	return e.emit(appmodel.GetResult{Application: toModel(application)})
 }

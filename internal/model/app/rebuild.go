@@ -11,3 +11,10 @@ type RebuildCommand struct {
 }
 
 func (RebuildCommand) IsCommand() {}
+
+type RebuildRequested struct {
+	Application Application
+	Commit      string
+}
+
+func (RebuildRequested) IsEvent() {}

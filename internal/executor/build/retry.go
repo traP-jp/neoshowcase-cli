@@ -7,9 +7,9 @@ import (
 	"connectrpc.com/connect"
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) Retry(ctx context.Context, options model.Connection, id string, wait, logs bool) error {
@@ -33,7 +33,7 @@ func (e *Executor) Retry(ctx context.Context, options model.Connection, id strin
 		return client.ContextError(ctx, client.RPCError("retry build", err))
 	}
 	if !wait {
-		return e.output.Mutation(cli.Mutation{Operation: "build.retry", SourceBuildID: build.GetId(), ApplicationID: build.GetApplicationId(), Commit: build.GetCommit(), State: "requested"})
+		return e.emit(buildmodel.RetryRequested{Build: ToModel(build, "")})
 	}
 	newBuild, err := Watch(ctx, apiClient, build.GetApplicationId(), build.GetCommit(), excluded)
 	if err != nil {
@@ -43,7 +43,7 @@ func (e *Executor) Retry(ctx context.Context, options model.Connection, id strin
 	if err != nil {
 		return err
 	}
-	if err := e.output.BuildResult(final, "", logs); err != nil {
+	if err := e.emit(buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}); err != nil {
 		return err
 	}
 	return Result(final)

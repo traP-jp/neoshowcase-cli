@@ -5,6 +5,7 @@ import (
 
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) Wait(ctx context.Context, options model.Connection, id string, logs bool) error {
@@ -17,7 +18,7 @@ func (e *Executor) Wait(ctx context.Context, options model.Connection, id string
 	if err != nil {
 		return err
 	}
-	if err := e.output.BuildResult(final, "", logs); err != nil {
+	if err := e.emit(buildmodel.CompletionResult{Build: ToModel(final, ""), Streaming: logs}); err != nil {
 		return err
 	}
 	return Result(final)

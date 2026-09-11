@@ -11,3 +11,16 @@ type LogsCommand struct {
 }
 
 func (LogsCommand) IsCommand() {}
+
+type Log struct {
+	ApplicationID string
+	Time          time.Time
+	Text          string
+}
+
+type LogsResult struct {
+	Logs      []Log
+	Streaming bool
+}
+
+func (LogsResult) IsEvent() {}

@@ -12,7 +12,6 @@ import (
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
 	"github.com/traP-jp/neoshowcase-cli/internal/api/genconnect"
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
@@ -85,27 +84,27 @@ func ResolveApplication(ctx context.Context, apiClient Client, identifier string
 		}
 	}
 	if len(matches) == 0 {
-		return nil, cli.Fail(cli.ExitNotFound, "application %q not found", identifier)
+		return nil, model.NewError(model.ErrorNotFound, "application %q not found", identifier)
 	}
 	if len(matches) > 1 {
-		return nil, cli.Fail(cli.ExitNotFound, "application name %q is ambiguous (%d exact matches)", identifier, len(matches))
+		return nil, model.NewError(model.ErrorNotFound, "application name %q is ambiguous (%d exact matches)", identifier, len(matches))
 	}
 	return matches[0], nil
 }
 
 func ContextError(ctx context.Context, err error) error {
 	if ctx.Err() == context.DeadlineExceeded {
-		return cli.Fail(cli.ExitTimeout, "command timed out")
+		return model.NewError(model.ErrorTimeout, "command timed out")
 	}
 	if ctx.Err() == context.Canceled {
-		return cli.Fail(cli.ExitInterrupt, "command interrupted")
+		return model.NewError(model.ErrorInterrupt, "command interrupted")
 	}
 	return err
 }
 
 func RPCError(action string, err error) error {
 	if connect.CodeOf(err) == connect.CodeNotFound {
-		return cli.Fail(cli.ExitNotFound, "%s: target not found", action)
+		return model.NewError(model.ErrorNotFound, "%s: target not found", action)
 	}
 	return fmt.Errorf("%s: %w", action, err)
 }

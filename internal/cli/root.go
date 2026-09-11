@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	appcli "github.com/traP-jp/neoshowcase-cli/internal/cli/app"
 	buildcli "github.com/traP-jp/neoshowcase-cli/internal/cli/build"
+	clioutput "github.com/traP-jp/neoshowcase-cli/internal/cli/output"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
 )
 
@@ -98,7 +99,11 @@ func (c *CLI) Parse(args []string) (*model.Invocation, error) {
 }
 
 func (c *CLI) Renderer(format string) *Renderer {
-	return &Renderer{out: c.out, errOut: c.errOut, format: format, logger: c.logger}
+	return &Renderer{output: clioutput.New(c.out, format)}
+}
+
+func (c *CLI) Warn(message string) {
+	c.logger.Warn(message)
 }
 
 func (c *CLI) LogError(err error) {

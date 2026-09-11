@@ -8,10 +8,11 @@ import (
 	"connectrpc.com/connect"
 
 	api "github.com/traP-jp/neoshowcase-cli/internal/api"
-	"github.com/traP-jp/neoshowcase-cli/internal/cli"
 	buildexecutor "github.com/traP-jp/neoshowcase-cli/internal/executor/build"
 	"github.com/traP-jp/neoshowcase-cli/internal/executor/client"
 	"github.com/traP-jp/neoshowcase-cli/internal/model"
+	appmodel "github.com/traP-jp/neoshowcase-cli/internal/model/app"
+	buildmodel "github.com/traP-jp/neoshowcase-cli/internal/model/build"
 )
 
 func (e *Executor) Rebuild(ctx context.Context, options model.Connection, identifier, commit string, wait, logs bool) error {
@@ -39,7 +40,7 @@ func (e *Executor) Rebuild(ctx context.Context, options model.Connection, identi
 		return client.ContextError(ctx, client.RPCError("rebuild application", err))
 	}
 	if !wait {
-		return e.output.Mutation(cli.Mutation{Operation: "app.rebuild", ApplicationID: application.GetId(), ApplicationName: application.GetName(), Commit: selectedCommit, State: "requested"})
+		return e.emit(appmodel.RebuildRequested{Application: toModel(application), Commit: selectedCommit})
 	}
 	build, err := buildexecutor.Watch(ctx, apiClient, application.GetId(), selectedCommit, excluded)
 	if err != nil {
@@ -49,7 +50,7 @@ func (e *Executor) Rebuild(ctx context.Context, options model.Connection, identi
 	if err != nil {
 		return err
 	}
-	if err := e.output.BuildResult(final, application.GetName(), logs); err != nil {
+	if err := e.emit(buildmodel.CompletionResult{Build: buildexecutor.ToModel(final, application.GetName()), Streaming: logs}); err != nil {
 		return err
 	}
 	return buildexecutor.Result(final)
